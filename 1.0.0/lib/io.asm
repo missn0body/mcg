@@ -28,6 +28,7 @@ strlen_loop:
 	test	cl, cl		; is the current byte null?
 	jnz	strlen_loop	; if not, keep repeating
 	sub	rax, rdi
+	dec	rax
 	pop	rcx
 	ret
 
@@ -146,8 +147,6 @@ itoa_16_nextdigit:
 itoa_16_noadd:
 	stosb				; store to memory-buffer
 	loop	itoa_16_nextdigit	; again for other remainders
-	mov	al, '.'
-	stosb
 	xor	al, al
 	stosb
 

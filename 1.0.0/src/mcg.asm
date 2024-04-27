@@ -28,15 +28,18 @@
 
 section .data
 	prog_pre:	db 'mcg: ', 0
+
 	seed_rep:	db 'seed (__x64_sys_time) reports to be ', 0
-	rest_rep:	db 'builtins are A = 0xBC8F, Mod = 0x7FFFFFFF', 0Ah, 0
+	mult_rep:	db 'builtins are A = 0x', 0
+	modu_rep:	db ', Mod = 0x', 0
 
 	nl:		db 0Ah, 0
 
 	mult		equ 0xBC8F
 	mod		equ 0x7FFFFFFF
+	shiftnum	equ 31
 	regsiz		equ 8
-	bufsiz		equ 128
+	bufsiz		equ 32
 
 section .text
 global _start
@@ -57,9 +60,25 @@ report:
 	call	puts		; and print it
 	mov	rdi, nl		; with a newline as well
 	call	puts
-	status	rest_rep	; print out the rest of the report
+	status	mult_rep	; print first part of string
+	mov	rax, mult	; set number for conversion
+	mov	rdi, multbuf	; and the buffer
+	call	itoa_16		; convert!
+	mov	rdi, multbuf	; load the buffer
+	call	puts
+	mov	rdi, modu_rep	; print first part of string
+	call	puts
+	mov	rax, mod	; set number for conversion
+	mov	rdi, modubuf	; and the buffer
+	call	itoa_16		; convert!
+	mov	rdi, modubuf	; load the buffer
+	call	puts
+	mov	rdi, nl		; and then put a newline
+	call	puts
 	ret
 
 section .bss
 	seed	resb	regsiz
 	seedbuf	resb	bufsiz
+	multbuf	resb	bufsiz
+	modubuf	resb	bufsiz
