@@ -1,0 +1,10 @@
+STDIN		equ 0
+STDOUT		equ 1
+STDERR		equ 2
+
+SEEK_SET	equ 0
+SEEK_CUR	equ 1
+SEEK_END	equ 2
+
+EXIT_SUCCESS	equ 0
+EXIT_FAILURE	equ -1
