@@ -27,6 +27,11 @@
 	pop	rdi
 %endmacro
 
+%macro	error	1
+	status	%1
+	call	exit_failure
+%endmacro
+
 %macro pdec 2
 	push	rdi
 	push	rax
@@ -51,17 +56,47 @@
 	pop	rdi
 %endmacro
 
+%macro	teststr	1
+	mov	rsi, %1
+	call	strcmp
+	test	rax, rax
+%endmacro
+
 ;=================================================
 ; MACROS BEGIN HERE
 ;=================================================
 
 section .data
+
+	filename:       db 'Multiplicative Congruential Generator '
+	version:        db '(v. 1.0.0): '
+	signature:      db 'a barebones assembly RNG.', 0Ah
+			db 'created by anson <thesearethethingswesaw@gmail.com>', 0Ah, 0Ah, 0
+	usage:          db 'Usage:', 0Ah, 09h, 'mcg (-h / --help)', 0Ah
+			db 09h, 'mcg (-v / --version)', 0Ah
+			db 09h, 'mcg (-r / --report)', 0Ah, 0Ah
+			db 'Options:', 0Ah, 09h, '-r, --report', 09h, 'display algorithm internals', 0Ah, 0Ah, 0
+	footer:		db 'this product refuses a license, see UNLICENSE for related details', 0Ah, 0
+
 	prog_pre:	db 'mcg: ', 0
 
+	; error messages down below
+	bad_args:	db 'unknown argument', 0Ah, 0
+	no_args:	db 'too few arguments, try "--help"', 0Ah, 0
+	no_opt:		db 'no option argument', 0Ah, 0
+	bad_opt:	db 'option argument not a number', 0Ah, 0
+	ignore:		db 'non-argument string ignored', 0Ah, 0
+
+	; report messages
 	seed_rep:	db 'seed (__x64_sys_time) reports to be ', 0
 	mult_rep:	db 'builtins are A = 0x', 0
 	modu_rep:	db ', Mod = 0x', 0
 	clam_rep:	db 'output is clamped to 0-', 0
+
+	; long argument strings for testing
+	help_string:	db 'help', 0
+	version_string:	db 'version', 0
+	report_string:	db 'report', 0
 
 	nl:		db 0Ah, 0
 
@@ -76,13 +111,87 @@ section .text
 global _start
 
 _start:
+	pop	rcx		; get argc off the stack
+	cmp	rcx, 2		; are there any arguments?
+	jl	noargs		; go off to for further processing
+	add	rsp, 8
+
+args_loop:
+	pop	rdi		; grab the next argv[] on the stack
+	test	rdi, rdi	; does it start with a null character?
+	je	noargs		; if so, exit loop
+	cmp	[rdi], byte '-'	; does the character begin with a hyphen?
+	je	args_parse	; go for further processing
+	inc	rbx		; increment count, for each non argument string
+	cmp	rbx, 1
+	jge	ignore_nonargs	; if we've gotten more than two non-args, tell the user
+	jmp	args_loop	; keep checking for more args
+
+args_parse:
+	inc	rdi		; move the pointer up one
+	cmp	[rdi], byte '-'	; long option?
+	je	longargs	; if so, move to different section
+	cmp	[rdi], byte 0	; does the argument just end?
+	je	args_loop	; if so, continue back to loop
+
+	; the character itself is in rdi
+
+	cmp	[rdi], byte 'h'	; first, test 'h'
+	je	print_usage
+	cmp	[rdi], byte 'v'	; do we want to print version info?
+	je	print_version
+	call	unknown_args
+	jmp	args_loop
+
+longargs:
+	inc	rdi		; move the pointer up one
+	cmp	[rdi], byte '-'	; are there even more hyphens???
+	je	args_loop	; if so, trash it, go back
+	cmp	[rdi], byte 0	; does the arg consist of just two hyphens?
+	je	args_loop
+
+	; the string begins at rdi, and is already null-terminated
+	; at least, it plays nice with this implementation of puts()
+
+	teststr help_string	; does the argument equal 'help'?
+	je	print_usage	; if so, jump to usage
+	teststr	version_string	; does the argument equal 'version'?
+	je	print_version	; if so, jump to version
+	call	unknown_args	; if its not these, we don't know what it is
+	jmp	args_loop	; see if theres more arguments
+
+
+print_usage:
+	mov	rdi, filename
+	call	puts
+	mov	rdi, usage
+	call	puts
+	mov	rdi, footer
+	call	puts
+	call	exit_success
+
+print_version:
+	mov	rdi, filename
+	call	puts
+	call	exit_success
+
+; this subroutine does not exit the program but rather
+; returns back to the calling point
+unknown_args:
+	error	bad_args
+	ret
+
+ignore_nonargs:
+	status	ignore
+	jmp	args_loop
+
+noargs:
 	mov	rax, 0xC9	; we want to get time
 	syscall
 	mov	[seed], rax	; save our seed for later, in case
 	mov	[clamp], word defclamp
 	call	ready
 	call	mcg		; our argument is already loaded, so call
-	mov	rdx, 256
 	call	simpleclamp
 	mov	rdi, outbuf	; load in buffer...
 	call	itoa_10		; ... to convert to string
@@ -143,7 +252,7 @@ simpleclamp:
 	push	rdx
 	mov	rdx, [clamp]
 	dec	rdx
-	and	rax, rdx	; rax % rdx == rax & (rdx - 1), if rdx is power of two
+	and	rax, rdx	; rax % clamp == rax & (clamp - 1), if rdx is power of two
 	pop	rdx
 	ret
 
@@ -170,7 +279,7 @@ report_exit:
 
 section .bss
 
-; These are for holdign a number
+; These are for holding a number
 	seed	resb	regsiz
 	clamp	resb	regsiz
 
