@@ -140,6 +140,8 @@ args_parse:
 	je	print_usage
 	cmp	[rdi], byte 'v'	; do we want to print version info?
 	je	print_version
+	cmp	[rdi], byte 'r'	; do we want to report internals?
+	je	set_report
 	call	unknown_args
 	jmp	args_loop
 
@@ -157,9 +159,10 @@ longargs:
 	je	print_usage	; if so, jump to usage
 	teststr	version_string	; does the argument equal 'version'?
 	je	print_version	; if so, jump to version
+	teststr report_string	; does the argument equal 'report'?
+	je	set_report	; if so, set a flag
 	call	unknown_args	; if its not these, we don't know what it is
 	jmp	args_loop	; see if theres more arguments
-
 
 print_usage:
 	mov	rdi, filename
@@ -174,6 +177,13 @@ print_version:
 	mov	rdi, filename
 	call	puts
 	call	exit_success
+
+set_report:
+	cmp	r15b, 0xF	; is the the lowest part of r15 set to F?
+	je	args_loop	; if so, skip entirely
+	xor	r15, r15	; clear the register
+	mov	r15b, 0xF	; set the lowest part to F
+	jmp	args_loop
 
 ; this subroutine does not exit the program but rather
 ; returns back to the calling point
@@ -199,7 +209,10 @@ noargs:
 	call	puts		; ... to print out
 	mov	rdi, nl		; and also print a newline
 	call	puts
+	cmp	r15b, 0xF	; do we want to report?
+	jne	skip		; if not, skip over the next instruction
 	call	report		; call a report
+skip:
 	call	exit_success	; and exit cleanly
 
 ; rax = time input
