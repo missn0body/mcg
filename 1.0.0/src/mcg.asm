@@ -73,7 +73,7 @@ section .data
 	signature:      db 'a barebones assembly RNG.', 0Ah
 			db 'created by anson <thesearethethingswesaw@gmail.com>', 0Ah, 0Ah, 0
 	usage:          db 'Usage:', 0Ah, 09h, 'mcg (-h / --help)', 0Ah
-			db 09h, 'mcg (-v / --version)', 0Ah
+			db 09h, 'mcg --version', 0Ah
 			db 09h, 'mcg (-r / --report)', 0Ah, 0Ah
 			db 'Options:', 0Ah, 09h, '-r, --report', 09h, 'display algorithm internals', 0Ah, 0Ah, 0
 	footer:		db 'this product refuses a license, see UNLICENSE for related details', 0Ah, 0
@@ -138,8 +138,6 @@ args_parse:
 
 	cmp	[rdi], byte 'h'	; first, test 'h'
 	je	print_usage
-	cmp	[rdi], byte 'v'	; do we want to print version info?
-	je	print_version
 	cmp	[rdi], byte 'r'	; do we want to report internals?
 	je	set_report
 	call	unknown_args

@@ -1,0 +1,36 @@
+.TH mcg 7 "May 2024" "Version 1.0.0"
+.SH NAME
+mcg \- Multiplicative Congruential Generator
+.SH SYNOPSIS
+.B mcg
+.I (-r / --report)
+.SH DESCRIPTION
+.B mcg
+generates and prints to stdout a number in the range
+of 0 to 255 based off of the Lehmer/Park-Miller algorithm
+to make a pseudorandom number. This algorithm involves
+a seed that is multiplied against a integer, and a modulus
+is taken from the product. This program is usually seeded
+with the time, provided by the Linux syscall
+.B __x64_sys_time
+and is usually set with the default parameters to A being 0x10A860C1
+and B being 0xFFFFFFFB.
+.PP
+.B mcg
+can also tell you what its current internal parameters for
+pseudorandom number generation at the moment with the
+.I -r
+flag, which will signal the program to "report" what it is
+currently doing and with what.
+.PP
+.B mcg
+is invokable through the terminal.
+.SH OPTIONS
+.IP "-r, --report"
+Signals
+.B mcg
+to report its internals to stdout.
+.SH BUGS
+No known bugs
+.SH AUTHORS
+Written by anson <thesearethethingswesaw@gmail.com>
